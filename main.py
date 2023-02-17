@@ -1,5 +1,9 @@
-from tm_bot import bot
+from aiogram.utils import executor
+from bot import dp
+from handlers import admin
 
 
 if __name__ == "__main__":
-    bot()
+    admin.register_handlers_admin(dp)
+
+    executor.start_polling(dp, skip_updates=True)

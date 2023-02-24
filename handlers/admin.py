@@ -54,6 +54,9 @@ async def distributor(msg: types.Message, state: FSMContext):
     elif data['distributor'] == 'Удалить товар':
         await msg.answer('Введите название товара:')
         await MyStates.delete_product.set()
+    elif data['distributor'] == 'Выход из админки':
+        await msg.answer('Вы вышли!')
+        await state.finish()
 
 
 async def delete_group(msg: types.Message, state: FSMContext):
@@ -62,6 +65,7 @@ async def delete_group(msg: types.Message, state: FSMContext):
     mysql_db.delete_group(data['delete_group'])
     await msg.answer(f'''Группа товаров "{data['delete_group']}" удалена.''')
     await state.finish()
+    await MyStates.distributor.set()
 
 
 async def delete_product(msg: types.Message, state: FSMContext):
@@ -70,6 +74,7 @@ async def delete_product(msg: types.Message, state: FSMContext):
     mysql_db.delete_product(data['delete_product'])
     await msg.answer(f'''Товар "{data['delete_product']}" удален.''')
     await state.finish()
+    await MyStates.distributor.set()
 
 
 async def add_amount_product(msg: types.Message, state: FSMContext):
@@ -85,6 +90,7 @@ async def add_amount_product(msg: types.Message, state: FSMContext):
     mysql_db.add_amount(int(data['add_amount']), data['name_product'])
     await msg.answer(f'''Товар {data["name_product"]} в количестве {data['add_amount']} штук добавлен''')
     await state.finish()
+    await MyStates.distributor.set()
 
 
 async def load_group(msg: types.Message, state: FSMContext):
@@ -98,6 +104,7 @@ async def load_group(msg: types.Message, state: FSMContext):
     mysql_db.add_group(data['name_group'])
     await msg.answer('Группа товаров добавлена')
     await state.finish()
+    await MyStates.distributor.set()
 
 
 async def load_photo(message: types.Message, state: FSMContext):
@@ -163,6 +170,7 @@ async def load_price(msg: types.Message, state: FSMContext):
         mysql_db.add_product(lst)
         await msg.answer('Товар добавлен')
         await state.finish()
+        await MyStates.distributor.set()
     else:
         await msg.reply("Введите число!")
 

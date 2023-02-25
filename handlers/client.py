@@ -260,7 +260,8 @@ async def basket(msg: types.Message, state: FSMContext):
         if int(data['basket']) <= int(data['amount']) and int(data['basket']) != 0:
             user_id, first_name, last_name, username = msg.from_user.id, msg.from_user.first_name,\
                                                        msg.from_user.last_name, msg.from_user.username
-            mysql_db.add_user([[user_id, first_name, last_name, username]])
+            if mysql_db.check_user(user_id)[0][0] == 0:
+                mysql_db.add_user([[user_id, first_name, last_name, username]])
             mysql_db.plus_in_basket(user_id, data['product'], data['basket'])
             mysql_db.take_away_quantity(int(data['basket']), data['product'])
             await delete_all_msg(msg.message_id, msg.from_user.id, data)

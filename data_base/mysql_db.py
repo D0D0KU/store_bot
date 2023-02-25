@@ -406,6 +406,18 @@ def get_product_from_order(order_id):
             return result
     except Error as e:
         print(e)
+
+
+def check_user(user_id):
+    try:
+        insert_into_table_name = f'''SELECT EXISTS(SELECT 2 FROM users WHERE user_id = {user_id})
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(insert_into_table_name)
+            result = cursor.fetchall()
+            return result
+    except Error as e:
+        print(e)
 # add_product([['oz', 26, 1, 1, 't']])
 # add_group("no beer")
 # delete_group('no beer')

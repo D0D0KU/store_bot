@@ -1,6 +1,7 @@
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram import types, Dispatcher
+import config
 from data_base import mysql_db
 from keyboards import client_kb
 from bot import bot
@@ -107,13 +108,31 @@ async def in_basket(msg: types.Message, state: FSMContext):
         await msg.answer('Выберите группу товаров', reply_markup=client_kb.inline_kb_for_group(mysql_db.get_all_group_name()))
     elif data['in_basket'] == 'Оформить заказ':
         message_id = msg.message_id
-        mysql_db.add_order([[mysql_db.get_id_for_order(), msg.from_user.id, mysql_db.get_first_name(msg.from_user.id),
+        mysql_db.add_order([[mysql_db.get_id_for_order(msg.from_user.id), msg.from_user.id,
+                             mysql_db.get_first_name(msg.from_user.id),
                              mysql_db.get_price_for_order(msg.from_user.id)]])
         await delete_all_msg(msg.message_id, msg.from_user.id, data)
-        await msg.answer(f'Номер вашего заказа {mysql_db.get_id_for_order()}, сумма к оплате'
+        await msg.answer(f'Номер вашего заказа {mysql_db.get_id_for_order(msg.from_user.id)}, сумма к оплате'
                          f' {mysql_db.get_price_for_order(msg.from_user.id)} руб.')
+        for i in config.admins_id:
+            await bot.send_message(
+                chat_id=i,
+                text=f'Зака оформил: {mysql_db.get_first_name(msg.from_user.id)}\n'
+                     f'Номер нового заказа: {mysql_db.get_id_for_order(msg.from_user.id)}\n'
+                     f'Сумма к оплате: {mysql_db.get_price_for_order(msg.from_user.id)} руб.\n'
+                     f'Заказ:\n'
+            )
+            for product, amount in mysql_db.get_basket(msg.from_user.id):
+                await bot.send_message(
+                    chat_id=i,
+                    text=f'Товар {product} в количестве {amount} шт.\n'
+                )
+        for product, amount in mysql_db.get_basket(msg.from_user.id):
+            mysql_db.insert_product_for_order([[mysql_db.get_id_for_order(msg.from_user.id),
+                                                product,
+                                                amount
+                                                ]])
         mysql_db.clear_basket(msg.from_user.id)
-        mysql_db.update_order_id()
         await msg.answer('Главное меню:', reply_markup=client_kb.start_kb())
         await state.finish()
         await state.update_data(message_id=message_id)

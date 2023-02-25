@@ -4,6 +4,7 @@ from aiogram import types, Dispatcher
 from data_base import mysql_db
 from keyboards import admin_kb
 from config import admins_id
+from bot import bot
 
 
 class MyStates(StatesGroup):
@@ -17,6 +18,7 @@ class MyStates(StatesGroup):
     add_amount = State()
     delete_group = State()
     delete_product = State()
+    num_order = State()
 
 
 async def check_admin(msg: types.Message):
@@ -25,10 +27,20 @@ async def check_admin(msg: types.Message):
     :param msg: сообщения из телеграма.
     """
     if msg.from_id in admins_id:
-        await msg.answer('Введите команду:', reply_markup=admin_kb.admin_layout())
-        await MyStates.distributor.set()
+        await msg.answer('Выберите задачу:', reply_markup=admin_kb.admin_works())
     else:
         await msg.answer('У вас нет прав администратора')
+
+
+async def call_back_admin_works(call: types.CallbackQuery):
+    if call.data == 'Работа с продуктами':
+        await call.message.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
+        await MyStates.distributor.set()
+    elif call.data == 'Работа с заказами':
+        await call.message.answer('Введите команду:', reply_markup=admin_kb.admin_order_work())
+        await MyStates.distributor.set()
+    await bot.delete_message(call.from_user.id, call.message.message_id)
+    await call.answer()
 
 
 async def distributor(msg: types.Message, state: FSMContext):
@@ -54,9 +66,53 @@ async def distributor(msg: types.Message, state: FSMContext):
     elif data['distributor'] == 'Удалить товар':
         await msg.answer('Введите название товара:')
         await MyStates.delete_product.set()
-    elif data['distributor'] == 'Выход из админки':
-        await msg.answer('Вы вышли!')
+
+    elif data['distributor'] == 'Посмотреть все заказы':
+        for i in mysql_db.get_all_orders():
+            await msg.answer(f'Номер заказа: {i[0]}, Имя: {i[1]}, сумма: {i[2]} руб.\nЗаказ:\n')
+            for amount, product in mysql_db.get_product_from_order(i[0]):
+                await bot.send_message(
+                    chat_id=msg.from_user.id,
+                    text=f'Товар {product} в количестве {amount} шт.\n'
+                )
+    elif data['distributor'] == 'Посмотреть все корзины':
+        for i in mysql_db.get_all_basket():
+            await msg.answer(f'Пользователь: {i[0]}, товар: {i[1]}, количество: {i[2]}')
+    elif data['distributor'] == 'Закрыть заказ':
+        await msg.answer('Введите номер заказа:')
+        await MyStates.num_order.set()
+    elif data['distributor'] == 'Очистить все корзины':
+        mysql_db.clear_all_basket()
+        await msg.answer('Все корзины очищены')
+
+    elif data['distributor'] == 'К задачам':
+        await msg.answer('Выберите задачу:', reply_markup=admin_kb.admin_works())
         await state.finish()
+
+
+async def get_num_order(msg: types.Message, state: FSMContext):
+    num_order = msg.text
+    await msg.answer('Как закрыть заказ?:', reply_markup=admin_kb.close_order())
+    await state.finish()
+    await state.update_data(num_order=num_order)
+
+
+async def close_order(call: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    if call.data == 'Оплатить-cl_or':
+        mysql_db.del_order(data['num_order'])
+        mysql_db.del_products_for_order(data['num_order'])
+        await call.message.answer('Заказ оплачен')
+        await call.message.answer('Введите команду:', reply_markup=admin_kb.admin_order_work())
+    elif call.data == 'Удалить-cl_or':
+        for num, product in mysql_db.get_product_from_order(data['num_order']):
+            mysql_db.add_amount(num, product)
+        mysql_db.del_order(data['num_order'])
+        mysql_db.del_products_for_order(data['num_order'])
+        await call.message.answer('Заказ удалён')
+        await call.message.answer('Введите команду:', reply_markup=admin_kb.admin_order_work())
+    await bot.delete_message(call.from_user.id, call.message.message_id)
+    await call.answer()
 
 
 async def delete_group(msg: types.Message, state: FSMContext):
@@ -191,3 +247,12 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(add_amount_product, state=MyStates.add_amount)
     dp.register_message_handler(delete_group, state=MyStates.delete_group)
     dp.register_message_handler(delete_product, state=MyStates.delete_product)
+    dp.register_message_handler(get_num_order, state=MyStates.num_order)
+    dp.register_callback_query_handler(
+        call_back_admin_works,
+        lambda x: x.data in ['Работа с продуктами', 'Работа с заказами', 'Закрыть-ad_w']
+    )
+    dp.register_callback_query_handler(
+        close_order,
+        lambda x: x.data in ['Оплатить-cl_or', 'Удалить-cl_or', 'Закрыть-cl_or']
+    )

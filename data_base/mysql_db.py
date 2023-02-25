@@ -265,29 +265,16 @@ def add_order(lst):
         print(e)
 
 
-def get_id_for_order():
+def get_id_for_order(user_id):
     try:
         insert_into_table_name = f'''SELECT id
-        FROM orders
-        WHERE name = "служебный"
+        FROM basket
+        WHERE user_id = {user_id}
         '''
         with connection.cursor() as cursor:
             cursor.execute(insert_into_table_name)
             result = cursor.fetchall()
             return result[0][0]
-    except Error as e:
-        print(e)
-
-
-def update_order_id():
-    try:
-        insert_into_table_name = f'''UPDATE orders
-        SET id = id + 1
-        WHERE name = "служебный"
-        '''
-        with connection.cursor() as cursor:
-            cursor.execute(insert_into_table_name)
-            connection.commit()
     except Error as e:
         print(e)
 
@@ -328,6 +315,95 @@ def clear_basket(user_id):
         with connection.cursor() as cursor:
             cursor.execute(insert_into_table_name)
             connection.commit()
+    except Error as e:
+        print(e)
+
+
+def get_all_basket():
+    try:
+        insert_into_table_name = f'''SELECT user_id, product, amount
+        FROM basket
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(insert_into_table_name)
+            result = cursor.fetchall()
+            return result
+    except Error as e:
+        print(e)
+
+
+def clear_all_basket():
+    try:
+        insert_into_table_name = f'''DELETE FROM basket
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(insert_into_table_name)
+            connection.commit()
+    except Error as e:
+        print(e)
+
+
+def get_all_orders():
+    try:
+        insert_into_table_name = f'''SELECT id, name, price
+        FROM orders
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(insert_into_table_name)
+            result = cursor.fetchall()
+            return result
+    except Error as e:
+        print(e)
+
+
+def insert_product_for_order(lst):
+    try:
+        insert_into_table_name = f'''INSERT INTO products_for_order (id, product, amount) 
+                                     VALUES (%s, %s, %s)
+            '''
+        with connection.cursor() as cursor:
+            cursor.executemany(insert_into_table_name, lst)
+            connection.commit()
+    except Error as e:
+        print(e)
+
+
+def del_order(order_id):
+    try:
+        insert_into_table_name = f'''
+        DELETE FROM orders
+        WHERE id = {order_id}
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(insert_into_table_name)
+            connection.commit()
+    except Error as e:
+        print(e)
+
+
+def del_products_for_order(order_id):
+    try:
+        insert_into_table_name = f'''
+        DELETE FROM products_for_order
+        WHERE id = {order_id}
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(insert_into_table_name)
+            connection.commit()
+    except Error as e:
+        print(e)
+
+
+def get_product_from_order(order_id):
+    try:
+        insert_into_table_name = f'''SELECT amount, product
+        FROM products_for_order
+        WHERE id = {order_id}
+        '''
+        with connection.cursor() as cursor:
+            cursor.execute(insert_into_table_name)
+            result = cursor.fetchall()
+            return result
     except Error as e:
         print(e)
 # add_product([['oz', 26, 1, 1, 't']])

@@ -41,3 +41,31 @@ def close_order():
 
     kb = InlineKeyboardMarkup().add(button_1).add(button_2).add(button_3)
     return kb
+
+
+def inline_kb_for_group(lst):
+    kb = InlineKeyboardMarkup()
+
+    for i in lst:
+        button = InlineKeyboardButton(str(*i), callback_data=str(*i)+'-del_g')
+        kb.add(button)
+    button = InlineKeyboardButton('Отмена', callback_data='Отмена-del_g')
+    kb.add(button)
+    return kb
+
+
+def cancel_kb():
+    button = KeyboardButton('Отмена')
+    kb = ReplyKeyboardMarkup(resize_keyboard=True).add(button)
+    return kb
+
+
+def inline_kb_for_group_for_prod(lst):
+    kb = InlineKeyboardMarkup()
+
+    for i in lst:
+        button = InlineKeyboardButton(str(*i), callback_data=str(*i)+'-id_g')
+        kb.add(button)
+    button = InlineKeyboardButton('Отмена', callback_data='Отмена-id_g')
+    kb.add(button)
+    return kb

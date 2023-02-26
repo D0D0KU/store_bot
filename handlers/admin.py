@@ -45,7 +45,7 @@ async def call_back_admin_works(call: types.CallbackQuery):
 
 async def distributor(msg: types.Message, state: FSMContext):
     """
-    Выбирает, какой кусок кода запустить в соответствии с командами.
+    Выбирает, какой кусок кода запустить в соответствии с командой.
     :param msg: сообщения из телеграма.
     :param state: состояния из машины состояний.
     """
@@ -55,14 +55,15 @@ async def distributor(msg: types.Message, state: FSMContext):
         await MyStates.photo.set()
         await msg.answer('Загрузите фото')
     elif data['distributor'] == 'Добавить группу товаров':
-        await msg.answer('Введите название группы товаров:')
+        await msg.answer('Введите название группы товаров:', reply_markup=admin_kb.cancel_kb())
         await MyStates.name_group.set()
     elif data['distributor'] == 'Добавить количество товара':
         await msg.answer('Введите количество товара и название товара, через пробел:')
         await MyStates.add_amount.set()
     elif data['distributor'] == 'Удалить группу товаров':
-        await msg.answer('Введите название группы:')
-        await MyStates.delete_group.set()
+        await msg.answer('Выберите группу товаров:',
+                         reply_markup=admin_kb.inline_kb_for_group(mysql_db.get_all_group_name()))
+        await state.finish()
     elif data['distributor'] == 'Удалить товар':
         await msg.answer('Введите название товара:')
         await MyStates.delete_product.set()
@@ -82,6 +83,8 @@ async def distributor(msg: types.Message, state: FSMContext):
         await msg.answer('Введите номер заказа:')
         await MyStates.num_order.set()
     elif data['distributor'] == 'Очистить все корзины':
+        for i in mysql_db.get_all_basket():
+            mysql_db.add_amount(i[2], i[1])
         mysql_db.clear_all_basket()
         await msg.answer('Все корзины очищены')
 
@@ -115,13 +118,15 @@ async def close_order(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
 
 
-async def delete_group(msg: types.Message, state: FSMContext):
-    await state.update_data(delete_group=msg.text)
-    data = await state.get_data()
-    mysql_db.delete_group(data['delete_group'])
-    await msg.answer(f'''Группа товаров "{data['delete_group']}" удалена.''')
-    await state.finish()
-    await MyStates.distributor.set()
+async def delete_group(call: types.CallbackQuery):
+    if call.data == 'Отмена-del_g':
+        await call.answer()
+        await MyStates.distributor.set()
+    else:
+        mysql_db.delete_group(call.data.replace('-del_g', ''))
+        await call.answer(f'''Группа товаров "{call.data.replace('-del_g', '')}" удалена.''')
+        await MyStates.distributor.set()
+    await bot.delete_message(call.from_user.id, call.message.message_id)
 
 
 async def delete_product(msg: types.Message, state: FSMContext):
@@ -155,34 +160,44 @@ async def load_group(msg: types.Message, state: FSMContext):
     :param msg: сообщения из телеграма.
     :param state: состояния из машины состояний.
     """
-    await state.update_data(name_group=msg.text)
-    data = await state.get_data()
-    mysql_db.add_group(data['name_group'])
-    await msg.answer('Группа товаров добавлена')
-    await state.finish()
-    await MyStates.distributor.set()
+    if msg.text == "Отмена":
+        await msg.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
+        await MyStates.distributor.set()
+    else:
+        await state.update_data(name_group=msg.text)
+        data = await state.get_data()
+        mysql_db.add_group(data['name_group'])
+        await msg.answer('Группа товаров добавлена')
+        await state.finish()
+        await MyStates.distributor.set()
+        await msg.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
 
 
-async def load_photo(message: types.Message, state: FSMContext):
+async def load_photo(msg: types.Message, state: FSMContext):
     """
     Сохраняет изображение.
-    :param message: сообщения из телеграма.
+    :param msg: сообщения из телеграма.
     :param state: состояния из машины состояний.
     """
-    await state.update_data(photo=message.photo[0].file_id)
+    await state.update_data(photo=msg.photo[0].file_id)
     await MyStates.name_product.set()
-    await message.answer('Теперь введите название')
+    await msg.answer('Теперь введите название', reply_markup=admin_kb.cancel_kb())
 
 
-async def load_name_product(message: types.Message, state: FSMContext):
+async def load_name_product(msg: types.Message, state: FSMContext):
     """
     Сохраняет название продукта.
-    :param message: сообщения из телеграма.
+    :param msg: сообщения из телеграма.
     :param state: состояния из машины состояний.
     """
-    await state.update_data(name_product=message.text)
-    await MyStates.amount.set()
-    await message.answer('Введите количество')
+    if msg.text == "Отмена":
+        await msg.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
+        await MyStates.distributor.set()
+    else:
+        await state.update_data(name_product=msg.text)
+
+        await MyStates.amount.set()
+        await msg.answer('Введите количество', reply_markup=admin_kb.cancel_kb())
 
 
 async def load_amount(msg: types.Message, state: FSMContext):
@@ -191,26 +206,44 @@ async def load_amount(msg: types.Message, state: FSMContext):
     :param msg: сообщения из телеграма.
     :param state: состояния из машины состояний.
     """
-    await state.update_data(amount=msg.text)
-    data = await state.get_data()
-    if data['amount'].isdigit():
-        await MyStates.group_id.set()
-        await msg.answer('Введите название группы товара')
+    if msg.text == "Отмена":
+        await msg.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
+        await MyStates.distributor.set()
     else:
-        await msg.reply("Введите число!")
+        await state.update_data(amount=msg.text)
+        data = await state.get_data()
+        if data['amount'].isdigit():
+            await MyStates.group_id.set()
+            await msg.answer('Выберите название группы товара',
+                             reply_markup=admin_kb.inline_kb_for_group_for_prod(mysql_db.get_all_group_name()))
+            name_product = data['name_product']
+            photo = data['photo']
+            amount = data['amount']
+            await state.finish()
+            await state.update_data(amount=amount)
+            await state.update_data(photo=photo)
+            await state.update_data(name_product=name_product)
+        else:
+            await msg.reply("Введите число!", reply_markup=admin_kb.cancel_kb())
 
 
-async def load_group_id(message: types.Message, state: FSMContext):
+async def load_group_id(call: types.CallbackQuery, state: FSMContext):
     """
     Сохраняет id группы товаров.
-    :param message: сообщения из телеграма.
+    :param call: callback.
     :param state: состояния из машины состояний.
     """
-    await state.update_data(name_group=message.text)
-    data = await state.get_data()
-    await state.update_data(group_id=mysql_db.get_group_id(data['name_group']))
-    await MyStates.price.set()
-    await message.answer('Теперь укажите цену')
+    if call.data == "Отмена-id_g":
+        await call.message.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
+        await MyStates.distributor.set()
+    else:
+        await state.update_data(name_group=call.data.replace('-id_g', ''))
+        data = await state.get_data()
+        await state.update_data(group_id=mysql_db.get_group_id(data['name_group']))
+        await MyStates.price.set()
+        await call.message.answer('Теперь укажите цену', reply_markup=admin_kb.cancel_kb())
+    await bot.delete_message(call.from_user.id, call.message.message_id)
+    await call.answer()
 
 
 async def load_price(msg: types.Message, state: FSMContext):
@@ -219,16 +252,21 @@ async def load_price(msg: types.Message, state: FSMContext):
     :param msg:  сообщения из телеграма.
     :param state: состояния из машины состояний.
     """
-    await state.update_data(price=msg.text)
-    data = await state.get_data()
-    if data['price'].isdigit():
-        lst = [[data["name_product"], *data["group_id"], int(data["amount"]), float(data["price"]), data["photo"]]]
-        mysql_db.add_product(lst)
-        await msg.answer('Товар добавлен')
-        await state.finish()
+    if msg.text == "Отмена":
+        await msg.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
         await MyStates.distributor.set()
     else:
-        await msg.reply("Введите число!")
+        await state.update_data(price=msg.text)
+        data = await state.get_data()
+        if data['price'].isdigit():
+            lst = [[data["name_product"], *data["group_id"], int(data["amount"]), float(data["price"]), data["photo"]]]
+            mysql_db.add_product(lst)
+            await msg.answer('Товар добавлен')
+            await state.finish()
+            await MyStates.distributor.set()
+            await msg.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
+        else:
+            await msg.reply("Введите число!", reply_markup=admin_kb.cancel_kb())
 
 
 def register_handlers_admin(dp: Dispatcher):
@@ -240,14 +278,20 @@ def register_handlers_admin(dp: Dispatcher):
     dp.register_message_handler(load_photo, content_types=['photo'], state=MyStates.photo)
     dp.register_message_handler(load_name_product, state=MyStates.name_product)
     dp.register_message_handler(load_amount, state=MyStates.amount)
-    dp.register_message_handler(load_group_id, state=MyStates.group_id)
     dp.register_message_handler(load_price, state=MyStates.price)
     dp.register_message_handler(check_admin, commands=['moderator'])
     dp.register_message_handler(load_group, state=MyStates.name_group)
     dp.register_message_handler(add_amount_product, state=MyStates.add_amount)
-    dp.register_message_handler(delete_group, state=MyStates.delete_group)
     dp.register_message_handler(delete_product, state=MyStates.delete_product)
     dp.register_message_handler(get_num_order, state=MyStates.num_order)
+    dp.register_callback_query_handler(
+        load_group_id,
+        lambda x: x.data in [str(*i) + '-id_g' for i in mysql_db.get_all_group_name()] or x.data == "Отмена-id_g"
+    )
+    dp.register_callback_query_handler(
+        delete_group,
+        lambda x: x.data in [str(*i)+'-del_g' for i in mysql_db.get_all_group_name()] or x.data == "Отмена-del_g"
+    )
     dp.register_callback_query_handler(
         call_back_admin_works,
         lambda x: x.data in ['Работа с продуктами', 'Работа с заказами', 'Закрыть-ad_w']

@@ -21,8 +21,8 @@ async def delete_all_msg(new_message_id, chat_id, data):
     while new_message_id >= data['message_id']:
         try:
             await bot.delete_message(chat_id=chat_id, message_id=new_message_id)
-        except Exception as error:
-            print(f'Message_id does not exist: {new_message_id} - {error}')
+        except Exception:
+            pass
         new_message_id = new_message_id - 1
 
 
@@ -34,6 +34,7 @@ async def show_my_basket_for_call(call, data, send_message=False):
             product, amount = i
             string += f'{product} в количестве {amount} шт.\n'
         await call.message.answer(string, reply_markup=client_kb.in_basket())
+        await call.message.answer(f'Сумма вашей корзины: {mysql_db.get_price_for_order(call.from_user.id)}')
         await MyStates.in_basket.set()
         await call.answer()
     elif send_message:
@@ -52,6 +53,7 @@ async def show_my_basket_for_msg(msg, state):
             product, amount = i
             string += f"{product} в количестве {amount} шт.\n"
         await msg.answer(string, reply_markup=client_kb.in_basket())
+        await msg.answer(f'Сумма вашей корзины: {mysql_db.get_price_for_order(msg.from_user.id)}')
         message_id = msg.message_id
         await MyStates.in_basket.set()
         await state.update_data(message_id=message_id)

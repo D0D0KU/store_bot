@@ -1,0 +1,4 @@
+TOKEN = 'your_token'
+admins_id = []
+mysql_name = 'your_user_name'
+mysql_pw = 'your_password'

@@ -3,6 +3,9 @@ from config import mysql_name, mysql_pw
 
 
 def start_db():
+    """
+    Соединяется с БД.
+    """
     global connection
     connection = connect(
             host="localhost",
@@ -47,6 +50,11 @@ def add_product(lst):
 
 
 def add_amount(num, product):
+    """
+    Добавляет количество товара.
+    :param num: количество товара.
+    :param product: название продукта.
+    """
     try:
         insert_into_table_name = f'''UPDATE products
         SET amount = amount + {num}
@@ -60,6 +68,10 @@ def add_amount(num, product):
 
 
 def delete_group(group):
+    """
+    Удаляет группу товара с продуктами входящими в эту группу.
+    :param group: название группы.
+    """
     try:
         insert_into_table_name = f'''
         DELETE FROM products 
@@ -81,6 +93,10 @@ def delete_group(group):
 
 
 def delete_product(product):
+    """
+    Удаляет продукт.
+    :param product: название продукта.
+    """
     try:
         insert_into_table_name = f'''DELETE FROM products
         WHERE name = "{product}"
@@ -93,6 +109,10 @@ def delete_product(product):
 
 
 def get_group_id(group):
+    """
+    Получает id группы.
+    :param group: название группы.
+    """
     try:
         insert_into_table_name = f'''SELECT id
         FROM product_group
@@ -108,6 +128,9 @@ def get_group_id(group):
 
 
 def get_all_group_name():
+    """
+    Получает названия всех групп.
+    """
     try:
         insert_into_table_name = f'''SELECT group_name
         FROM product_group'''
@@ -120,6 +143,10 @@ def get_all_group_name():
 
 
 def get_name_product_from_group(group):
+    """
+    Получает названия продуктов для определённых групп.
+    :param group: название группы.
+    """
     try:
         insert_into_table_name = f'''SELECT products.name
         FROM products
@@ -133,6 +160,9 @@ def get_name_product_from_group(group):
 
 
 def get_all_product_name():
+    """
+    Получает название всех продуктов.
+    """
     try:
         insert_into_table_name = f'''SELECT name
         FROM products'''
@@ -145,6 +175,10 @@ def get_all_product_name():
 
 
 def get_product(product):
+    """
+    Получает осноные данные по продукту.
+    :param product: название продукта.
+    """
     try:
         insert_into_table_name = f'''SELECT name, amount, price, image
         FROM products
@@ -158,6 +192,10 @@ def get_product(product):
 
 
 def add_user(lst):
+    """
+    Добавляет нового пользователя.
+    :param lst: список с данными пользователя.
+    """
     try:
         insert_into_table_name = f'''INSERT INTO users (user_id, first_name, last_name, user_name) 
                                      VALUES (%s, %s, %s, %s)
@@ -170,6 +208,11 @@ def add_user(lst):
 
 
 def take_away_quantity(num, product):
+    """
+    Отнимает количество товара.
+    :param num: количество товара.
+    :param product: название товара.
+    """
     try:
         insert_into_table_name = f'''UPDATE products
         SET amount = amount - {num}
@@ -183,6 +226,10 @@ def take_away_quantity(num, product):
 
 
 def add_user_basket(lst):
+    """
+    Добавляет запись в корзину клиента.
+    :param lst: список с данными для добавления.
+    """
     try:
         insert_into_table_name = f'''INSERT INTO basket (user_id, product, amount) 
                                      VALUES (%s, %s, %s)
@@ -195,6 +242,10 @@ def add_user_basket(lst):
 
 
 def get_basket(user_id):
+    """
+    Получает данные из корзины пользователя.
+    :param user_id: id пользователя.
+    """
     try:
         insert_into_table_name = f'''SELECT product, amount
         FROM basket
@@ -208,6 +259,11 @@ def get_basket(user_id):
 
 
 def delete_in_basket(user_id, product):
+    """
+    Удаляет товар из корзины пользователя.
+    :param user_id: id пользователя.
+    :param product: название продукта.
+    """
     try:
         insert_into_table_name = f'''DELETE FROM basket
         WHERE product = "{product}" AND user_id = "{user_id}"
@@ -220,6 +276,12 @@ def delete_in_basket(user_id, product):
 
 
 def minus_in_basket(user_id, product, amount):
+    """
+    Отнимает количество товара в корзине пользователя.
+    :param user_id: id пользователя.
+    :param product: название продукта.
+    :param amount: количество продукта.
+    """
     try:
         insert_into_table_name = f'''UPDATE basket
         SET amount = amount - {amount}
@@ -233,6 +295,12 @@ def minus_in_basket(user_id, product, amount):
 
 
 def plus_in_basket(u, p, a):
+    """
+    Добавляет товар в корзину, используя процедуру.
+    :param u: id юзера.
+    :param p: название продукта.
+    :param a: количество продукта.
+    """
     try:
         with connection.cursor() as cursor:
             cursor.callproc('insert_basket', (u, p, a))
@@ -242,6 +310,10 @@ def plus_in_basket(u, p, a):
 
 
 def check_basket(user_id):
+    """
+    Проверяет наличие корзины.
+    :param user_id: id пользователя.
+    """
     try:
         insert_into_table_name = f'''SELECT EXISTS(SELECT 2 FROM basket WHERE user_id = {user_id})
         '''
@@ -254,6 +326,10 @@ def check_basket(user_id):
 
 
 def add_order(lst):
+    """
+    Добавляет ноывй заказ.
+    :param lst: список с данными для заказа.
+    """
     try:
         insert_into_table_name = f'''INSERT INTO orders (id, user_id, name, price) 
                                      VALUES (%s, %s, %s, %s)
@@ -266,6 +342,10 @@ def add_order(lst):
 
 
 def get_id_for_order(user_id):
+    """
+    Получает id из корзины для заказа.
+    :param user_id: id пользователя.
+    """
     try:
         insert_into_table_name = f'''SELECT id
         FROM basket
@@ -280,6 +360,10 @@ def get_id_for_order(user_id):
 
 
 def get_first_name(user_id):
+    """
+    Получает имя пользователя.
+    :param user_id: id пользователя.
+    """
     try:
         insert_into_table_name = f'''SELECT first_name
         FROM users
@@ -294,6 +378,10 @@ def get_first_name(user_id):
 
 
 def get_price_for_order(user_id):
+    """
+    Получает сумарную цену для заказа.
+    :param user_id: id пользователя.
+    """
     try:
         insert_into_table_name = f'''select SUM(price*basket.amount)
         from basket inner join products on basket.product = products.name
@@ -308,6 +396,10 @@ def get_price_for_order(user_id):
 
 
 def clear_basket(user_id):
+    """
+    Очищает корзину.
+    :param user_id: id пользователя.
+    """
     try:
         insert_into_table_name = f'''DELETE FROM basket
         WHERE user_id = "{user_id}"
@@ -320,6 +412,9 @@ def clear_basket(user_id):
 
 
 def get_all_basket():
+    """
+    Получает все корзины.
+    """
     try:
         insert_into_table_name = f'''SELECT user_id, product, amount
         FROM basket
@@ -333,6 +428,9 @@ def get_all_basket():
 
 
 def clear_all_basket():
+    """
+    Очищает все корзины.
+    """
     try:
         insert_into_table_name = f'''DELETE FROM basket
         '''
@@ -344,6 +442,9 @@ def clear_all_basket():
 
 
 def get_all_orders():
+    """
+    Получает все заказы.
+    """
     try:
         insert_into_table_name = f'''SELECT id, name, price
         FROM orders
@@ -357,6 +458,10 @@ def get_all_orders():
 
 
 def insert_product_for_order(lst):
+    """
+    Добавляет продукты для заказа.
+    :param lst: данные для заполнения таблицы.
+    """
     try:
         insert_into_table_name = f'''INSERT INTO products_for_order (id, product, amount) 
                                      VALUES (%s, %s, %s)
@@ -369,6 +474,10 @@ def insert_product_for_order(lst):
 
 
 def del_order(order_id):
+    """
+    Удаляет заказ.
+    :param order_id: номер заказа.
+    """
     try:
         insert_into_table_name = f'''
         DELETE FROM orders
@@ -382,6 +491,10 @@ def del_order(order_id):
 
 
 def del_products_for_order(order_id):
+    """
+    Удаляет продукты связанные с заказом.
+    :param order_id: номер заказа.
+    """
     try:
         insert_into_table_name = f'''
         DELETE FROM products_for_order
@@ -395,6 +508,10 @@ def del_products_for_order(order_id):
 
 
 def get_product_from_order(order_id):
+    """
+    Получает продукты для заказа.
+    :param order_id: номер заказа.
+    """
     try:
         insert_into_table_name = f'''SELECT amount, product
         FROM products_for_order
@@ -409,6 +526,10 @@ def get_product_from_order(order_id):
 
 
 def check_user(user_id):
+    """
+    Проверяет наличие пользователя.
+    :param user_id: id пользователя.
+    """
     try:
         insert_into_table_name = f'''SELECT EXISTS(SELECT 2 FROM users WHERE user_id = {user_id})
         '''
@@ -418,22 +539,3 @@ def check_user(user_id):
             return result
     except Error as e:
         print(e)
-# add_product([['oz', 26, 1, 1, 't']])
-# add_group("no beer")
-# delete_group('no beer')
-# delete_product('r')
-# print(get_group_id("no beer"))
-# print(get_all_group_name())
-# print(get_product_from_group("пиво"))
-# print([i for i in get_product_from_group('пиво')])
-# print(get_all_product_name())
-# print(get_product("q")[0])
-# add_user([[1, "Dav", "Davidson", "Tot"]])
-# add_user_basket([[1, "beer", 3]])
-# take_away_quantity(1, "beer")
-# print(get_basket(1))
-# add_products_for_order([[1, 'tyt', 1, 1]])
-# add_order([[0, 0, 'служебный', 0]])
-# print(get_id_for_order())
-# update_order_id()
-

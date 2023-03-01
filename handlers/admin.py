@@ -33,6 +33,10 @@ async def check_admin(msg: types.Message):
 
 
 async def call_back_admin_works(call: types.CallbackQuery):
+    """
+    Обрабатывает калбеки: 'Работа с продуктами', 'Работа с заказами'.
+    :param call: сообщения из телеграма.
+    """
     if call.data == 'Работа с продуктами':
         await call.message.answer('Введите команду:', reply_markup=admin_kb.admin_product_work())
         await MyStates.distributor.set()
@@ -94,6 +98,11 @@ async def distributor(msg: types.Message, state: FSMContext):
 
 
 async def get_num_order(msg: types.Message, state: FSMContext):
+    """
+    Получает номер заказа и спрашивает, как закрыть заказ.
+    :param msg: сообщения из телеграма.
+    :param state: состояния из машины состояний.
+    """
     num_order = msg.text
     await msg.answer('Как закрыть заказ?:', reply_markup=admin_kb.close_order())
     await state.finish()
@@ -101,6 +110,11 @@ async def get_num_order(msg: types.Message, state: FSMContext):
 
 
 async def close_order(call: types.CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает калбеки: 'Оплатить-cl_or', 'Удалить-cl_or'.
+    :param call: сообщения из телеграма.
+    :param state: состояния из машины состояний.
+    """
     data = await state.get_data()
     if call.data == 'Оплатить-cl_or':
         mysql_db.del_order(data['num_order'])
@@ -119,6 +133,10 @@ async def close_order(call: types.CallbackQuery, state: FSMContext):
 
 
 async def delete_group(call: types.CallbackQuery):
+    """
+    Обрабатывает калбеки: 'Отмена-del_g' и все названия групп с окончанием '-del_g'.
+    :param call: сообщения из телеграма.
+    """
     if call.data == 'Отмена-del_g':
         await call.answer()
         await MyStates.distributor.set()
@@ -130,12 +148,20 @@ async def delete_group(call: types.CallbackQuery):
 
 
 async def delete_product(msg: types.Message, state: FSMContext):
-    await state.update_data(delete_product=msg.text)
-    data = await state.get_data()
-    mysql_db.delete_product(data['delete_product'])
-    await msg.answer(f'''Товар "{data['delete_product']}" удален.''')
-    await state.finish()
-    await MyStates.distributor.set()
+    """
+    Принимает название продукта и удаляет его.
+    :param msg: сообщения из телеграма.
+    :param state: состояния из машины состояний.
+    """
+    if msg.text in [str(*i) for i in mysql_db.get_all_product_name()]:
+        await state.update_data(delete_product=msg.text)
+        data = await state.get_data()
+        mysql_db.delete_product(data['delete_product'])
+        await msg.answer(f'''Товар "{data['delete_product']}" удален.''')
+        await state.finish()
+        await MyStates.distributor.set()
+    else:
+        await msg.answer(f'''Данного товара нет в магазине!''')
 
 
 async def add_amount_product(msg: types.Message, state: FSMContext):

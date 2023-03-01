@@ -1,9 +1,13 @@
-from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup,\
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup,\
     InlineKeyboardButton
 from data_base import mysql_db
 
 
 def start_kb():
+    """
+    Создаёт клавиатуру главного меню.
+    :return: клавиатуру главного меню.
+    """
     button_1 = InlineKeyboardButton('Магазин', callback_data='Магазин')
     button_2 = InlineKeyboardButton('Моя корзина', callback_data='Моя корзина')
 
@@ -12,12 +16,21 @@ def start_kb():
 
 
 def cancel_kb():
+    """
+    Создаёт кнопку "Отмена".
+    :return: кнопку "Отмена".
+    """
     button = KeyboardButton('Отмена')
     kb = ReplyKeyboardMarkup(resize_keyboard=True).add(button)
     return kb
 
 
 def inline_kb(lst):
+    """
+    Создаёт инлайн клавиатуру по заданному списку.
+    :param lst: список с названиями кнопок.
+    :return: инлайн клавиатуру по заданному списку.
+    """
     kb = InlineKeyboardMarkup()
 
     for i in lst:
@@ -27,6 +40,11 @@ def inline_kb(lst):
 
 
 def inline_kb_for_group(lst):
+    """
+    Создаёт инлайн клавиатуру для групп товара.
+    :param lst: список с названиями групп.
+    :return: инлайн клавиатуру для групп товара.
+    """
     kb = InlineKeyboardMarkup()
 
     for i in lst:
@@ -38,6 +56,11 @@ def inline_kb_for_group(lst):
 
 
 def inline_kb_for_products(lst):
+    """
+    Создаёт инлайн клавиатуру для товаров.
+    :param lst: список с названиями продуктов.
+    :return: инлайн клавиатуру для товаров.
+    """
     kb = InlineKeyboardMarkup()
 
     for i in lst:
@@ -49,6 +72,10 @@ def inline_kb_for_products(lst):
 
 
 def buy():
+    """
+    Создаёт инлайн клавиатуру для карточек товаров.
+    :return: инлайн клавиатуру для карточек товаров.
+    """
     buy_b = InlineKeyboardButton("Добавить в корзину", callback_data="Добавить в корзину")
     back = InlineKeyboardButton("Закрыть", callback_data="Закрыть")
 
@@ -57,6 +84,10 @@ def buy():
 
 
 def my_basket():
+    """
+    Создаёт кнопку для команды "/Моя_корзина".
+    :return: кнопку для команды "/Моя_корзина".
+    """
     basket_b = KeyboardButton("/Моя_корзина")
 
     kb = ReplyKeyboardMarkup(resize_keyboard=True).add(basket_b)
@@ -64,6 +95,10 @@ def my_basket():
 
 
 def in_basket():
+    """
+    Создаёт клавиатуру для пользовательской корзины.
+    :return: клавиатуру для пользовательской корзины.
+    """
     button_1 = KeyboardButton("Удалить товар")
     button_2 = KeyboardButton("Уменьшить количество товара")
     button_3 = KeyboardButton("Добавить товар")
@@ -75,6 +110,11 @@ def in_basket():
 
 
 def del_in_basket(user_id):
+    """
+    Создаёт инлайн клавиатуру для удаления товара из корзины.
+    :param user_id: id пользователя.
+    :return: инлайн клавиатуру для удаления товара из корзины.
+    """
     kb = InlineKeyboardMarkup()
 
     for i, j in mysql_db.get_basket(user_id):
@@ -85,6 +125,11 @@ def del_in_basket(user_id):
 
 
 def minus_in_basket(user_id):
+    """
+    Создаёт инлайн клавиатуру для вычета товара из корзины.
+    :param user_id: user_id: id пользователя.
+    :return: инлайн клавиатуру для вычета товара из корзины.
+    """
     kb = InlineKeyboardMarkup()
 
     for i, j in mysql_db.get_basket(user_id):

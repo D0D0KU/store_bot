@@ -18,6 +18,12 @@ class MyStates(StatesGroup):
 
 
 async def delete_all_msg(new_message_id, chat_id, data):
+    """
+    Удаляет все сообщения до new_message_id.
+    :param new_message_id: id сообщения до которого будут удалены все сообщения.
+    :param chat_id: id чата или пользователя.
+    :param data: данные сохранённые в состояниях.
+    """
     while new_message_id >= data['message_id']:
         try:
             await bot.delete_message(chat_id=chat_id, message_id=new_message_id)
@@ -27,6 +33,12 @@ async def delete_all_msg(new_message_id, chat_id, data):
 
 
 async def show_my_basket_for_call(call, data, send_message=False):
+    """
+    Показывает корзину для калбеков.
+    :param call: обработка хендлера.
+    :param data: данные сохранённые в состояниях.
+    :param send_message: определяет, как будет отправлен ответ.
+    """
     if mysql_db.check_basket(call.from_user.id)[0][0] == 1:
         await delete_all_msg(call.message.message_id, call.from_user.id, data)
         string = 'Моя корзина:\n'
@@ -34,7 +46,7 @@ async def show_my_basket_for_call(call, data, send_message=False):
             product, amount = i
             string += f'{product} в количестве {amount} шт.\n'
         await call.message.answer(string, reply_markup=client_kb.in_basket())
-        await call.message.answer(f'Сумма вашей корзины: {mysql_db.get_price_for_order(call.from_user.id)}')
+        await call.message.answer(f'Сумма вашей корзины: {mysql_db.get_price_for_order(call.from_user.id)} руб.')
         await MyStates.in_basket.set()
         await call.answer()
     elif send_message:
@@ -45,6 +57,11 @@ async def show_my_basket_for_call(call, data, send_message=False):
 
 
 async def show_my_basket_for_msg(msg, state):
+    """
+    Показывает корзину для сообщений.
+    :param msg: обработка сообщений.
+    :param state: обработка состояний.
+    """
     data = await state.get_data()
     await delete_all_msg(msg.message_id, msg.from_user.id, data)
     if mysql_db.check_basket(msg.from_user.id)[0][0] == 1:
@@ -53,7 +70,7 @@ async def show_my_basket_for_msg(msg, state):
             product, amount = i
             string += f"{product} в количестве {amount} шт.\n"
         await msg.answer(string, reply_markup=client_kb.in_basket())
-        await msg.answer(f'Сумма вашей корзины: {mysql_db.get_price_for_order(msg.from_user.id)}')
+        await msg.answer(f'Сумма вашей корзины: {mysql_db.get_price_for_order(msg.from_user.id)} руб.')
         message_id = msg.message_id
         await MyStates.in_basket.set()
         await state.update_data(message_id=message_id)
@@ -65,11 +82,22 @@ async def show_my_basket_for_msg(msg, state):
 
 
 async def start(msg: types.Message, state: FSMContext):
+    """
+    Обработка команды "start".
+    :param msg: обработка сообщений.
+    :param state: обработка состояний.
+    """
     await msg.answer('Здравствуйте!', reply_markup=client_kb.start_kb())
     await state.update_data(message_id=msg.message_id)
 
 
 async def call_back_start(call: types.CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает кнопки главного меню.
+    :param call: обработка калбеков.
+    :param state: обработка состояний.
+    :return:
+    """
     data = await state.get_data()
     if call.data == 'Магазин':
         await call.message.edit_text('Выберите группу товаров',
@@ -80,10 +108,14 @@ async def call_back_start(call: types.CallbackQuery, state: FSMContext):
 
 
 async def in_basket(msg: types.Message, state: FSMContext):
+    """
+    Обрабатывает команды, пользователя, связанные с корзиной.
+    :param msg: обработчик сообщений.
+    :param state: обработчик состояний.
+    """
     await state.update_data(in_basket=msg.text)
     data = await state.get_data()
     if data['in_basket'] == 'Удалить товар':
-        await delete_all_msg(msg.message_id, msg.from_user.id, data)
         await show_my_basket_for_msg(msg, state)
         await msg.answer('Выберите товар для удаления:', reply_markup=client_kb.del_in_basket(msg.from_user.id))
         message_id = msg.message_id
@@ -91,12 +123,14 @@ async def in_basket(msg: types.Message, state: FSMContext):
         await state.update_data(message_id=message_id)
     elif data['in_basket'] == 'Закрыть корзину':
         await delete_all_msg(msg.message_id, msg.from_user.id, data)
-        await msg.answer('Выберите группу товаров', reply_markup=client_kb.inline_kb_for_group(mysql_db.get_all_group_name()))
+        await msg.answer(
+            'Выберите группу товаров',
+            reply_markup=client_kb.inline_kb_for_group(mysql_db.get_all_group_name())
+        )
         message_id = msg.message_id
         await state.finish()
         await state.update_data(message_id=message_id)
     elif data['in_basket'] == 'Уменьшить количество товара':
-        await delete_all_msg(msg.message_id, msg.from_user.id, data)
         await show_my_basket_for_msg(msg, state)
         await msg.answer('Выберите товар:', reply_markup=client_kb.minus_in_basket(msg.from_user.id))
         message_id = msg.message_id
@@ -107,7 +141,10 @@ async def in_basket(msg: types.Message, state: FSMContext):
         await state.finish()
         await state.update_data(message_id=message_id)
         await delete_all_msg(msg.message_id, msg.from_user.id, data)
-        await msg.answer('Выберите группу товаров', reply_markup=client_kb.inline_kb_for_group(mysql_db.get_all_group_name()))
+        await msg.answer(
+            'Выберите группу товаров',
+            reply_markup=client_kb.inline_kb_for_group(mysql_db.get_all_group_name())
+        )
     elif data['in_basket'] == 'Оформить заказ':
         message_id = msg.message_id
         mysql_db.add_order([[mysql_db.get_id_for_order(msg.from_user.id), msg.from_user.id,
@@ -141,6 +178,11 @@ async def in_basket(msg: types.Message, state: FSMContext):
 
 
 async def minus_in_basket(call: types.CallbackQuery, state: FSMContext):
+    """
+    Выполняется для вычитания количества товара из корзины.
+    :param call: обработчик калбеков.
+    :param state: обработчик состояний.
+    """
     product = call.data.replace('-minus', '')
     await state.update_data(product=product)
     if product == 'Отмена':
@@ -149,12 +191,20 @@ async def minus_in_basket(call: types.CallbackQuery, state: FSMContext):
         await MyStates.in_basket.set()
     else:
         await bot.delete_message(call.from_user.id, call.message.message_id)
-        await call.message.answer('Введите количество, которое необходимо убрать из заказа:', reply_markup=client_kb.cancel_kb())
+        await call.message.answer(
+            'Введите количество, которое необходимо убрать из заказа:',
+            reply_markup=client_kb.cancel_kb()
+        )
         await call.answer()
         await MyStates.minus_product.set()
 
 
 async def minus_product(msg: types.Message, state: FSMContext):
+    """
+    Вычитает количество товара из корзины пользователя.
+    :param msg: обработчик сообщений.
+    :param state: обработчик состояний.
+    """
     amount = msg.text
     data = await state.get_data()
     if amount.isdigit():
@@ -163,18 +213,15 @@ async def minus_product(msg: types.Message, state: FSMContext):
                 if int(amount) < a:
                     mysql_db.minus_in_basket(msg.from_user.id, data['product'], amount)
                     mysql_db.add_amount(amount, data['product'])
-                    await delete_all_msg(msg.message_id, msg.from_user.id, data)
                     await show_my_basket_for_msg(msg, state)
                 elif int(amount) == a:
                     mysql_db.delete_in_basket(msg.from_user.id, data['product'])
                     mysql_db.add_amount(amount, data['product'])
-                    await delete_all_msg(msg.message_id, msg.from_user.id, data)
                     await show_my_basket_for_msg(msg, state)
                 else:
                     await delete_all_msg(msg.message_id, msg.from_user.id, data)
                     await msg.answer('Введённое число больше того, что у вас в корзине!')
     elif amount == 'Отмена':
-        await delete_all_msg(msg.message_id, msg.from_user.id, data)
         await show_my_basket_for_msg(msg, state)
     else:
         await msg.answer('Введите число!')
@@ -182,6 +229,11 @@ async def minus_product(msg: types.Message, state: FSMContext):
 
 
 async def delete_in_basket(call: types.CallbackQuery, state: FSMContext):
+    """
+    Удаляет товар из корзины пользователя.
+    :param call: обработчик калбеков.
+    :param state: обработчик состояний.
+    """
     product = call.data.replace('-del', '')
     if product == 'Отмена':
         await bot.delete_message(call.from_user.id, call.message.message_id)
@@ -195,8 +247,7 @@ async def delete_in_basket(call: types.CallbackQuery, state: FSMContext):
         mysql_db.add_amount(amount, product)
         mysql_db.delete_in_basket(call.from_user.id, product)
         data = await state.get_data()
-        await delete_all_msg(call.message.message_id, call.from_user.id, data)
-        await call.answer(f'''Товар {call.data.replace('-del', '')}, удалён из вашей корзины''', show_alert=True)
+        await call.answer(f'''Товар {call.data.replace('-del', '')}, удалён из вашей корзины''')
         await show_my_basket_for_call(call, data, send_message=True)
         message_id = call.message.message_id
         await MyStates.in_basket.set()
@@ -205,12 +256,20 @@ async def delete_in_basket(call: types.CallbackQuery, state: FSMContext):
 
 
 async def my_basket(msg: types.Message, state: FSMContext):
-    data = await state.get_data()
-    await delete_all_msg(msg.message_id, msg.from_user.id, data)
+    """
+    Показывает корзину при команде "Моя_корзина".
+    :param msg: обработчик сообщений.
+    :param state: обработчик состояний.
+    """
     await show_my_basket_for_msg(msg, state)
 
 
 async def group_callback(call: types.CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает калбеки из клавиатуры "Группы товаров".
+    :param call: обработчик калбеков.
+    :param state: обработчик состояний.
+    """
     if call.data == "<Назад-main":
         await call.message.edit_text('Главное меню:', reply_markup=client_kb.start_kb())
         await call.answer()
@@ -225,6 +284,11 @@ async def group_callback(call: types.CallbackQuery, state: FSMContext):
 
 
 async def product_callback(call: types.CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает калбеки с клавиатуры "Продукты".
+    :param call: обработчик калбеков.
+    :param state: обработчик состояний.
+    """
     if call.data == '<Назад':
         await call.message.edit_text(text='Выберите категорию товара:',
                                      reply_markup=client_kb.inline_kb_for_group(mysql_db.get_all_group_name()))
@@ -240,6 +304,11 @@ async def product_callback(call: types.CallbackQuery, state: FSMContext):
 
 
 async def add_product_callback(call: types.CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает калбеки из карточек товара.
+    :param call: обработчик калбеков.
+    :param state: обработчик состояний.
+    """
     if call.data == 'Закрыть':
         data = await state.get_data()
         await call.message.answer(
@@ -256,6 +325,11 @@ async def add_product_callback(call: types.CallbackQuery, state: FSMContext):
 
 
 async def basket(msg: types.Message, state: FSMContext):
+    """
+    Добавляет пользователя в БД и товар в корзину.
+    :param msg: обработчик сообщений.
+    :param state: обработчик состояний.
+    """
     await state.update_data(basket=msg.text)
     data = await state.get_data()
     if data['basket'].isdigit():
@@ -333,4 +407,3 @@ def register_handlers_client(dp: Dispatcher):
         call_back_start,
         lambda x: x.data in ['Магазин', 'Моя корзина']
     )
-
